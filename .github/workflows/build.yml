@@ -1,0 +1,41 @@
+name: Build jar
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.8
+
+      # Works both when you uploaded the unpacked project and when you uploaded ultrav1-full.zip
+      - name: Find project
+        id: proj
+        run: |
+          if [ -f build.gradle ]; then
+            echo "dir=." >> "$GITHUB_OUTPUT"
+          else
+            unzip -q -o ultrav1-full.zip -d unpacked
+            echo "dir=unpacked/ultrav1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        run: gradle build --no-daemon
+        working-directory: ${{ steps.proj.outputs.dir }}
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultrav1-jar
+          path: ${{ steps.proj.outputs.dir }}/build/libs/*.jar
